@@ -1,0 +1,8 @@
+[
+  { "id": 1, "nickname": "서연", "email": "seoyeon@example.com", "joinedAt": "2026-03-05" },
+  { "id": 2, "nickname": "지원", "email": "jiwon@example.com", "joinedAt": "2026-03-08" },
+  { "id": 3, "nickname": "하은", "email": "haeun@example.com", "joinedAt": "2026-03-12" },
+  { "id": 4, "nickname": "민서", "email": "minseo@example.com", "joinedAt": "2026-04-02" },
+  { "id": 5, "nickname": "가온", "email": "gaon@example.com", "joinedAt": "2026-04-14" },
+  { "id": 6, "nickname": null, "email": "deleted_6@example.com", "joinedAt": "2026-03-20" }
+]

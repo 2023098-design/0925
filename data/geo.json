@@ -1,0 +1,22 @@
+{
+  "center": { "lat": 37.5912, "lng": 127.0190 },
+  "note": "좌표는 OpenStreetMap 도로·주소 데이터로 추정한 근사값입니다. 정확한 위치는 naver 링크로 확인하세요.",
+  "landmarks": [
+    { "key": "station", "name": "성신여대입구역", "lat": 37.59265, "lng": 127.01645 },
+    { "key": "campus", "name": "성신여대 수정캠퍼스", "lat": 37.59125, "lng": 127.02230 },
+    { "key": "stream", "name": "성북천", "lat": 37.58920, "lng": 127.01560 }
+  ],
+  "places": [
+    { "id": 1,  "lat": 37.59240, "lng": 127.02010, "floor": "1층",   "naver": "https://naver.me/xll7ocer" },
+    { "id": 2,  "lat": 37.59150, "lng": 127.01990, "floor": "3층",   "naver": "https://naver.me/Ghw3npL1" },
+    { "id": 3,  "lat": 37.58990, "lng": 127.02120, "floor": "1층",   "naver": "https://naver.me/GIIixRSj" },
+    { "id": 4,  "lat": 37.59210, "lng": 127.01600, "floor": "1층",   "naver": "https://naver.me/FvTrogLv" },
+    { "id": 5,  "lat": 37.59335, "lng": 127.01905, "floor": "1~2층", "naver": "https://naver.me/xbKrOrAK" },
+    { "id": 6,  "lat": 37.59280, "lng": 127.01920, "floor": "1층",   "naver": "https://naver.me/G6RG8Gam" },
+    { "id": 7,  "lat": 37.59060, "lng": 127.02060, "floor": "1~2층", "naver": "https://naver.me/xSBl0arS" },
+    { "id": 8,  "lat": 37.58882, "lng": 127.01917, "floor": "1층",   "naver": "https://naver.me/GGGYkttR" },
+    { "id": 9,  "lat": 37.59050, "lng": 127.01870, "floor": "2~3층", "naver": "https://naver.me/5xgtYpIs" },
+    { "id": 10, "lat": 37.59430, "lng": 127.02020, "floor": "2층",   "naver": "https://naver.me/5vJemtBM" },
+    { "id": 11, "lat": 37.59460, "lng": 127.01643, "floor": "2층",   "naver": "https://naver.me/Fx2YBWPV" }
+  ]
+}

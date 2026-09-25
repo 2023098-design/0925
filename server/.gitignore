@@ -1,0 +1,14 @@
+#올리면 안되는 것들- 이파일을 지우지 마세요(w4 8장)
+
+node_modules/
+
+#API키 (w7)
+.env
+
+#SQLite 데이터베이스 파일 (w6)
+app.db
+
+#EC2 접속 열쇠 (w5)
+*.pem
+
+.DS_Store

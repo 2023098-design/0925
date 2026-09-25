@@ -1,0 +1,14 @@
+# GitHub 에 올리면 안 되는 것 — 지우지 마세요
+node_modules/
+.env
+*.db
+*.pem
+.DS_Store
+# 빌드 부산물
+blender/cache/*.log
+blender/cache/q.txt
+*.blend1
+touchdesigner/py_libs/
+touchdesigner/models/
+touchdesigner/Backup/
+*.toe.bak

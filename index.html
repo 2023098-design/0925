@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko" data-filter="pastel" data-tone="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>공부각 — 성신여대 공부 공간 리뷰</title>
+<meta name="description" content="성신여대 근처에서 공부하거나 작업할 만한 공간을 기록하고 후기를 나누는 캠퍼스 공간 리뷰. 블렌더로 만든 3D 지도와 손 제스처로 둘러보세요.">
+<meta name="theme-color" content="#fbf7fb">
+<meta property="og:title" content="공부각 — 성신여대 공부 공간 리뷰">
+<meta property="og:description" content="웹 목록과 3D 지도를 오가며, 키보드·손 제스처로 성신여대 주변 공부 공간을 찾아보세요.">
+<meta property="og:image" content="images/hero.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237b61ff'/%3E%3Cstop offset='1' stop-color='%23ff6f91'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cpath d='M32 14c-8 0-14 6-14 13.6C18 38 32 50 32 50s14-12 14-22.4C46 20 40 14 32 14zm0 19a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": {
+  "three": "./js/vendor/three/build/three.module.min.js",
+  "three/addons/": "./js/vendor/three/examples/jsm/"
+} }
+</script>
+</head>
+<body class="mode-web">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- ── 상단 바 ─────────────────────────────────────────── -->
+<header class="topbar">
+  <a class="brand" href="#/" aria-label="공부각 홈">
+    <span class="logo" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.6 2 4 5.4 4 9.7 4 15.6 12 22 12 22s8-6.4 8-12.3C20 5.4 16.4 2 12 2zm0 10.8a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2z"/></svg></span>
+    <b>공부각</b><small>성신여대 공부 공간 리뷰</small>
+  </a>
+  <div class="mode-toggle" role="tablist" aria-label="화면 전환 (M 키)">
+    <span class="mt-thumb" aria-hidden="true"></span>
+    <button role="tab" data-mode="web" aria-selected="true">🗂 웹 <kbd>M</kbd></button>
+    <button role="tab" data-mode="map" aria-selected="false">🧊 3D 지도</button>
+  </div>
+  <div class="top-actions">
+    <button class="chip-btn pomo hide-sm" id="btnPomo" title="뽀모도로 25분 (P)">🍅 <span id="pomoTime">25:00</span></button>
+    <button class="chip-btn hide-sm" id="btnFilter" title="지도 디자인 필터 바꾸기 (F · 손바닥 스와이프)"><span class="swatch"></span><span class="label" id="filterName">파스텔 데이</span></button>
+    <button class="chip-btn" id="btnCam" aria-pressed="false" title="카메라 손 제스처 켜기 (C)">✋ <span class="label">손 제스처</span></button>
+    <button class="chip-btn hide-sm" id="btnTD" aria-pressed="false" title="TouchDesigner 연결 (T)"><span class="dot" id="tdDot"></span><span class="label">TD</span></button>
+    <button class="chip-btn" id="btnLogin">로그인</button>
+  </div>
+</header>
+
+<!-- ── 일반 웹 화면 ─────────────────────────────────────── -->
+<main id="web">
+  <div class="wrap">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">SUNGSHIN · STUDY SPOTS</p>
+        <h1>오늘, <em>공부각</em><br>나오는 곳</h1>
+        <p class="lead">성신여대입구역부터 수정캠퍼스까지. 콘센트·소음·좌석을 기준으로 공부하기 좋은 공간을 기록하고 후기를 나눠요.</p>
+        <div class="hero-stats" id="heroStats"></div>
+        <div class="hero-cta">
+          <button class="btn primary" data-go="map">🧊 3D 지도로 둘러보기</button>
+          <a class="btn" href="#list">목록 보기</a>
+          <button class="btn" data-open-help>⌨️ 조작법</button>
+        </div>
+      </div>
+      <figure class="hero-visual" data-go="map" role="button" tabindex="0" aria-label="3D 지도 열기">
+        <picture><source srcset="images/hero.webp" type="image/webp"><img src="images/hero.jpg" alt="블렌더로 만든 성신여대 주변 3D 지도 렌더" width="1600" height="1000"></picture>
+        <figcaption class="hero-badge">
+          <span><b>성신여대 주변 3D 맵</b><small>OpenStreetMap 데이터로 Blender에서 제작 · 반경 560m</small></span>
+          <span class="play">▶</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <div class="pick" id="pick" hidden></div>
+
+    <section id="list">
+      <div class="section-head">
+        <div><h2>추천 공부 공간</h2><p>카드를 누르면 상세 정보와 리뷰를 볼 수 있어요.</p></div>
+      </div>
+      <div class="controls" role="search">
+        <div class="crow">
+          <label class="search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <span class="sr-only">공간 이름 검색</span>
+            <input id="search" type="search" placeholder="공간 이름 검색…" autocomplete="off">
+            <kbd>/</kbd>
+          </label>
+          <select id="sort" class="select" aria-label="정렬">
+            <option value="rating">⭐ 평점순</option>
+            <option value="count">💬 리뷰 많은 순</option>
+            <option value="name">가나다 이름순</option>
+          </select>
+        </div>
+        <div class="crow scroll">
+          <div class="seg" id="catSeg" role="group" aria-label="분류"></div>
+          <div class="dd" id="tagDD">
+            <button type="button" aria-expanded="false" aria-controls="tagPanel">🏷 태그 <span class="n" id="tagN">0</span></button>
+            <div class="dd-panel" id="tagPanel" role="dialog" aria-label="태그 필터">
+              <h4>태그 (모두 포함) <button type="button" id="tagReset">초기화</button></h4>
+              <div class="tagpick" id="tagPick"></div>
+              <p class="hint">아무것도 고르지 않으면 전체가 보여요.</p>
+            </div>
+          </div>
+          <span class="sep"></span>
+          <label class="toggle"><input type="checkbox" id="quiet"> 🤫 조용함만</label>
+          <label class="toggle"><input type="checkbox" id="openNow"> 🟢 지금 영업</label>
+          <label class="toggle"><input type="checkbox" id="favOnly"> ♥ 저장</label>
+        </div>
+      </div>
+      <div id="app" aria-live="polite"></div>
+    </section>
+
+    <footer>
+      <p><b>공부각</b> · 캠퍼스 공간 리뷰 (성신여대 SIS Design Lab 개인 프로젝트)</p>
+      <p>지도 데이터 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL) · 3D 맵은 Blender로 제작 · 골목의 일부 작은 건물은 빈 블록을 채우기 위해 절차적으로 생성했어요.</p>
+      <p>좌표와 운영시간은 추정값이에요. 방문 전 각 공간의 네이버지도 링크에서 확인하세요. 기본 리뷰는 서비스 시연용 예시 리뷰입니다.</p>
+    </footer>
+  </div>
+</main>
+
+<!-- ── 3D 지도 ─────────────────────────────────────────── -->
+<section id="map3d" aria-label="3D 지도">
+  <div class="loader" id="mapLoader"><div class="box"><div class="ring"></div><b>성신여대 3D 맵 불러오는 중</b><small id="loaderMsg">Blender에서 만든 지도를 준비하고 있어요</small><div class="bar"><i id="loaderBar"></i></div></div></div>
+  <div class="map-ui">
+    <aside class="map-side" id="mapSide">
+      <header><h3>📍 추천 공간 <span id="mapCount" class="note"></span></h3><button id="sideToggle" aria-label="목록 접기">⟨</button></header>
+      <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="sr-only">지도에서 검색</span><input id="mapSearch" type="search" placeholder="지도에서 찾기…" autocomplete="off"></label>
+      <ul class="map-list" id="mapList"></ul>
+      <div class="legend"><span style="--c:#7b61ff"><i></i>스터디카페</span><span style="--c:#ff6f91"><i></i>카페</span><span style="--c:#ffb347"><i></i>디저트카페</span></div>
+    </aside>
+    <div class="filter-dock" id="filterDock" role="group" aria-label="지도 디자인 필터"></div>
+    <div class="map-hints" id="mapHints">
+      <div><kbd>←↑↓→</kbd> 이동 <kbd>Q</kbd><kbd>E</kbd> 회전 <kbd>Z</kbd><kbd>X</kbd> 줌</div>
+      <div><kbd>Tab</kbd> 다음 공간 <kbd>Enter</kbd> 상세 <kbd>F</kbd> 필터 <kbd>Space</kbd> 투어</div>
+      <div>✋ 손바닥을 좌우로 휙 → 필터 변경</div>
+    </div>
+    <div class="map-tools">
+      <button id="btnTour" aria-pressed="false" title="자동 투어 (Space)">▶</button>
+      <button id="btnReset" title="처음 시점 (R)">⌂</button>
+      <button id="btnZoomIn" title="확대 (Z)">＋</button>
+      <button id="btnZoomOut" title="축소 (X)">－</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── 상세 시트 ───────────────────────────────────────── -->
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-hidden="true" aria-label="공간 상세">
+  <button class="close" id="sheetClose" aria-label="닫기 (Esc)">✕</button>
+  <div class="sheet-scroll" id="sheetBody"></div>
+</aside>
+
+<!-- ── 손 제스처 HUD ───────────────────────────────────── -->
+<div class="hud" id="hud" aria-live="polite">
+  <div class="cam"><video id="camVideo" playsinline muted></video><canvas id="camCanvas"></canvas><span class="pose" id="hudPose">손을 보여주세요</span><span class="src" id="hudSrc">브라우저</span></div>
+  <div class="guide">
+    <div class="row"><span>☝️ 검지</span><b>커서 이동</b></div>
+    <div class="row"><span>🤏 핀치</span><b>클릭 · 끌어서 이동</b></div>
+    <div class="row"><span>✊ 주먹</span><b>지도 회전</b></div>
+    <div class="row"><span>🤏🤏 양손 핀치</span><b>확대 · 축소</b></div>
+    <div class="row"><span>🖐 좌우 스와이프</span><b>필터 변경</b></div>
+    <div class="row"><span>✌️ 1초 유지</span><b>웹 ↔ 3D</b></div>
+    <div class="row"><span>👍 1초 유지</span><b>다음 공간</b></div>
+  </div>
+</div>
+<div class="hand-cursor" id="handCursor"></div>
+<div class="gesture-pop" id="gesturePop"><span class="e"></span><span class="t"></span></div>
+<div class="wipe" id="wipe"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<!-- 로그인 -->
+<dialog id="loginDlg">
+  <form method="dialog" id="loginForm">
+    <h3>로그인</h3>
+    <p>닉네임만 정하면 바로 리뷰를 쓸 수 있어요. (이 브라우저에만 저장돼요)</p>
+    <input type="text" id="nickInput" maxlength="12" placeholder="닉네임 (2~12자)" required minlength="2">
+    <div class="row"><button class="btn sm" value="cancel" formnovalidate>취소</button><button class="btn sm primary" value="ok">시작하기</button></div>
+  </form>
+</dialog>
+
+<!-- 조작법 -->
+<dialog id="helpDlg" class="help">
+  <form method="dialog">
+    <h3>조작법</h3>
+    <p>키보드, 마우스, 카메라 손 제스처, 또는 TouchDesigner로 조작할 수 있어요.</p>
+    <div class="cols">
+      <div>
+        <h4>공통 키보드</h4>
+        <ul>
+          <li><span>웹 ↔ 3D 지도</span><span><kbd>M</kbd></span></li>
+          <li><span>지도 디자인 필터</span><span><kbd>F</kbd> / <kbd>Shift</kbd>+<kbd>F</kbd></span></li>
+          <li><span>손 제스처 카메라</span><span><kbd>C</kbd></span></li>
+          <li><span>TouchDesigner 연결</span><span><kbd>T</kbd></span></li>
+          <li><span>검색</span><span><kbd>/</kbd></span></li>
+          <li><span>뽀모도로</span><span><kbd>P</kbd></span></li>
+          <li><span>닫기</span><span><kbd>Esc</kbd></span></li>
+          <li><span>조작법</span><span><kbd>?</kbd></span></li>
+        </ul>
+        <h4 style="margin-top:14px">웹 목록</h4>
+        <ul>
+          <li><span>카드 이동</span><span><kbd>←</kbd><kbd>→</kbd> / <kbd>J</kbd><kbd>K</kbd></span></li>
+          <li><span>상세 열기</span><span><kbd>Enter</kbd></span></li>
+        </ul>
+      </div>
+      <div>
+        <h4>3D 지도</h4>
+        <ul>
+          <li><span>이동</span><span><kbd>←↑↓→</kbd> / <kbd>WASD</kbd></span></li>
+          <li><span>회전</span><span><kbd>Q</kbd> <kbd>E</kbd></span></li>
+          <li><span>기울기</span><span><kbd>PgUp</kbd> <kbd>PgDn</kbd></span></li>
+          <li><span>확대 · 축소</span><span><kbd>Z</kbd> <kbd>X</kbd> / 휠</span></li>
+          <li><span>다음 · 이전 공간</span><span><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></span></li>
+          <li><span>상세 보기</span><span><kbd>Enter</kbd></span></li>
+          <li><span>자동 투어</span><span><kbd>Space</kbd></span></li>
+          <li><span>처음 시점</span><span><kbd>H</kbd></span></li>
+        </ul>
+        <h4 style="margin-top:14px">손 제스처</h4>
+        <ul>
+          <li><span>🖐 좌우 스와이프</span><span>필터 변경</span></li>
+          <li><span>🤏 핀치 / 끌기</span><span>클릭 · 이동</span></li>
+          <li><span>✊ 주먹 끌기</span><span>회전</span></li>
+          <li><span>✌️ 1초</span><span>웹 ↔ 3D</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="row"><button class="btn sm primary" value="ok">알겠어요</button></div>
+  </form>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
