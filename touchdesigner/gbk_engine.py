@@ -190,7 +190,7 @@ class Engine:
         self.prev, self.filter, self.mix = self.filter, i, 0.0
         if echo:
             self.send({'type': 'filter', 'index': i, 'dir': direction, 'via': 'swipe'})
-        self.status(f'필터 · {FILTER_NAMES[i]}')
+        self.status('스와이프로 필터 전환' if echo else '웹에서 필터 변경')
 
     def step_filter(self, d):
         self.set_filter(self.filter + d, echo=True, direction='right' if d > 0 else 'left')
@@ -199,7 +199,7 @@ class Engine:
         self.label = s
         t = op('hud_text')
         if t is not None:
-            t.par.text = f'공부각 × TouchDesigner   |   {FILTER_NAMES[self.filter]}   |   {s}'
+            t.par.text = f'공부각 × TouchDesigner   |   필터 {self.filter + 1}/7 · {FILTER_NAMES[self.filter]}   |   {s}   |   웹 연결 {len(self.clients)}   |   손바닥 좌우 스와이프 = 필터'
 
     # ── 매 프레임 ─────────────────────────────────────────
     def update(self):

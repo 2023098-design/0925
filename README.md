@@ -96,10 +96,23 @@ node seed/check_seed.js  # 시드 검사 (함정 3개 유지 확인)
 
 ## TouchDesigner 연결
 
-1. TouchDesigner 에서 `touchdesigner/gongbugak.toe` 를 엽니다 (또는 Textport 에서 `touchdesigner/td_setup.py` 실행)
-2. 카메라가 켜지고 손 추적이 시작됩니다 — 손바닥을 좌우로 휙 넘기면 **TD 카메라 필터와 웹 지도 필터가 함께** 바뀝니다
-3. 웹사이트에서 상단 **TD** 버튼(또는 `T`)을 누르면 `ws://localhost:9980` 으로 연결됩니다
+1. TouchDesigner(2023.11+)에서 `touchdesigner/gongbugak.tox` 를 네트워크로 끌어다 놓거나, Textport(`Alt+T`)에서
+   `exec(open('<저장소 폴더>/touchdesigner/td_setup.py', encoding='utf-8').read())` 를 실행합니다
+   (컴포넌트의 **프로젝트 폴더** 파라미터를 이 저장소 경로로 맞춰 주세요)
+2. 손 추적용 MediaPipe 설치 (한 번만) — TD 파이썬(3.11)용 휠을 `touchdesigner/py_libs` 에 받습니다
+   ```bash
+   python3 -m pip install --target touchdesigner/py_libs --python-version 3.11 --only-binary=:all: --no-deps \
+     --platform macosx_11_0_universal2 --platform macosx_11_0_arm64 \
+     mediapipe==0.10.14 absl-py flatbuffers "protobuf>=4.25.3,<5" sounddevice cffi pycparser
+   mkdir -p touchdesigner/models && curl -L -o touchdesigner/models/hand_landmarker.task \
+     https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+   ```
+   설치하지 않으면 프레임 차이로 좌우 손짓만 감지하는 **움직임 스와이프 모드**로 동작합니다
+3. 카메라가 켜지고 `window` 컴포넌트로 필터 화면이 열립니다 — 손바닥을 좌우로 휙 넘기면 **TD 카메라 필터와 웹 지도 필터가 함께** 바뀝니다 (TD 창에서 `←` `→` 키도 가능)
+4. 웹사이트 상단 **TD** 버튼(또는 `T`)을 누르면 `ws://localhost:9980` 으로 연결됩니다
+   - Chrome 이 “로컬 네트워크 접근” 권한을 물으면 허용해 주세요
    - 다른 컴퓨터의 TD: `https://2023098-design.github.io/0925/?td=ws://<IP>:9980`
+   - 연결 상태 확인: 브라우저에서 `http://localhost:9980` → `{"app":"gongbugak-td", …}`
 
 | TD → 웹 메시지 | 동작 |
 |---|---|
@@ -111,7 +124,6 @@ node seed/check_seed.js  # 시드 검사 (함정 3개 유지 확인)
 
 웹 → TD: `{"type":"filter","index":3}` (키보드·버튼으로 바꾼 필터를 TD 카메라 필터에 반영)
 
-손 추적은 MediaPipe(파이썬)로 하고, MediaPipe 가 없으면 프레임 차이로 좌우 손짓만 감지하는 ‘움직임 스와이프’ 모드로 동작합니다.
 
 ## 프로젝트 규칙 (시드)
 

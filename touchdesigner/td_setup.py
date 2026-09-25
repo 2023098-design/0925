@@ -111,21 +111,23 @@ comp.inputConnectors[0].connect(glsl)
 comp.inputConnectors[1].connect(overlay)
 
 hud_text = place(c.create(textTOP, 'hud_text'), 3, 1)
-hud_text.par.resolutionw, hud_text.par.resolutionh = 1280, 720
+hud_text.par.resolutionw, hud_text.par.resolutionh = 1280, 52
 hud_text.par.text = '공부각 × TouchDesigner'
-hud_text.par.fontsizex = 22
+hud_text.par.fontsizex = 20
 hud_text.par.alignx = 'left'
-hud_text.par.aligny = 'bottom'
-hud_text.par.positionx, hud_text.par.positiony = 24, 20
-hud_text.par.bgalpha = 0
-try:
-    hud_text.par.fontcolorr, hud_text.par.fontcolorg, hud_text.par.fontcolorb = 1, 1, 1
-except Exception:
-    pass
+hud_text.par.aligny = 'center'
+hud_text.par.positionx, hud_text.par.positiony = 22, 0
+hud_text.par.bgcolorr, hud_text.par.bgcolorg, hud_text.par.bgcolorb = 0.05, 0.04, 0.12
+hud_text.par.bgalpha = 0.62
 
 hud = place(c.create(overTOP, 'hud'), 4, 0)
 hud.inputConnectors[0].connect(hud_text)
 hud.inputConnectors[1].connect(comp)
+hud.par.outputresolution = 'custom'
+hud.par.resolutionw, hud.par.resolutionh = 1280, 720
+hud.par.prefit = 'nativeres'
+hud.par.justifyv = 'bottom'
+hud.par.justifyh = 'left'
 out = place(c.create(nullTOP, 'out_view'), 5, 0)
 out.inputConnectors[0].connect(hud)
 out.viewer = True

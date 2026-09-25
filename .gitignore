@@ -12,3 +12,4 @@ touchdesigner/py_libs/
 touchdesigner/models/
 touchdesigner/Backup/
 *.toe.bak
+touchdesigner/pip.log
