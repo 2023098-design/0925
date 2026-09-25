@@ -422,13 +422,14 @@ export class Map3D {
     this.scene.fog.color.copy(a.fog).lerp(b.fog, k);
     this.scene.fog.near = L(a.fogNear, b.fogNear);
     this.scene.fog.far = L(a.fogFar, b.fogFar);
+    this.fogBase = { near: this.scene.fog.near, far: this.scene.fog.far };
     this.hemi.color.copy(a.hemiSky).lerp(b.hemiSky, k);
     this.hemi.groundColor.copy(a.hemiGround).lerp(b.hemiGround, k);
     this.hemi.intensity = L(a.hemiI, b.hemiI);
     this.sun.color.copy(a.sunC).lerp(b.sunC, k);
     this.sun.intensity = L(a.sunI, b.sunI);
     this.sunDir = a.sunDir.clone().lerp(b.sunDir, k).normalize();
-    this.sun.position.copy(this.sunDir).multiplyScalar(1400);
+    if (!this.walker?.active) this.sun.position.copy(this.sunDir).multiplyScalar(1400);
     if (this.edgeMat) {
       this.edgeMat.opacity = L(a.edge, b.edge);
       this.edgeMat.color.copy(a.edgeC).lerp(b.edgeC, k);
@@ -485,6 +486,7 @@ export class Map3D {
   }
   setDim(ids) {
     const set = ids ? new Set(ids) : null;
+    this.pinDim = set ? new Set([...this.pins.keys()].filter((k) => !set.has(k))) : null;
     for (const [pid, p] of this.pins) {
       const dim = set && !set.has(pid);
       p.el.classList.toggle('dim', !!dim);
@@ -520,18 +522,39 @@ export class Map3D {
   bindPointer() {
     const el = this.renderer.domElement;
     let down = null;
-    el.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; this.touched(); this.stopTour(); });
+    el.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY }; this.touched(); this.stopTour(); });
+    document.addEventListener('mousemove', (e) => {
+      if (this.walking && document.pointerLockElement === el) this.walker.turn(-e.movementX * 0.0025, -e.movementY * 0.0025);
+    });
     el.addEventListener('pointermove', (e) => {
+      if (this.walking && down && document.pointerLockElement !== el) {
+        const w = this.walker;
+        w.turn(-(e.clientX - down.lx) * 0.005, (w.view === 'first' ? -1 : 1) * (e.clientY - down.ly) * 0.004);
+        down.lx = e.clientX; down.ly = e.clientY;
+        return;
+      }
       if (e.pointerType === 'mouse' && !down) { if (!this.pmT) { this.pmT = true; requestAnimationFrame(() => { this.pmT = false; this.hoverAt(e.clientX, e.clientY); }); } }
     });
     el.addEventListener('pointerup', (e) => {
       if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 5) {
         const id = this.pick(e.clientX, e.clientY);
-        this.cb.onSelect?.(id || null);
+        if (id || !this.walking) this.cb.onSelect?.(id || null);
+        else if (this.walker.view === 'first' && el.requestPointerLock) el.requestPointerLock();
       }
       down = null;
     });
   }
+
+  /* ── 걷기 모드 ───────────────────────────────────── */
+  async ensureWalker(cb) {
+    if (this.walker) return this.walker;
+    const { Walker } = await import('./walker.js');
+    const w = new Walker(this, cb);
+    await w.load();
+    this.walker = w;
+    return w;
+  }
+  get walking() { return !!this.walker?.active; }
 
   /* ── 카메라 조작 (키보드 · 제스처 · TD 공통) ───────── */
   touched() { this.lastInput = performance.now(); this.controls.autoRotate = false; }
@@ -625,16 +648,22 @@ export class Map3D {
       this.applyMix(this.ftween.from, this.ftween.to, ease(k));
       if (k >= 1) this.ftween = null;
     }
-    if (this.tween) {
+    if (this.walker?.active) {
+      this.tween = null;
+      this.controls.autoRotate = false;
+      this.walker.update(dt, time);
+    } else if (this.tween) {
       const k = ease(clamp((now - this.tween.s) / this.tween.dur, 0, 1));
       this.camera.position.lerpVectors(this.tween.p0, this.tween.p1, k);
       this.controls.target.lerpVectors(this.tween.t0, this.tween.t1, k);
       if (k >= 1) this.tween = null;
     }
     // 오래 가만히 있으면 천천히 한 바퀴 (머물면서 구경하기)
-    if (!this.tween && !this.touring && now - this.lastInput > 20000) { this.controls.autoRotate = true; this.controls.autoRotateSpeed = 0.35; }
-    if (this.touring && !this.tween) { this.orbit(dt * 0.12, 0); this.lastInput = now - 1000; }
-    this.controls.update();
+    if (!this.walking) {
+      if (!this.tween && !this.touring && now - this.lastInput > 20000) { this.controls.autoRotate = true; this.controls.autoRotateSpeed = 0.35; }
+      if (this.touring && !this.tween) { this.orbit(dt * 0.12, 0); this.lastInput = now - 1000; }
+      this.controls.update();
+    }
     this.uniforms.uTime.value = time;
     this.grade.uniforms.uTime.value = time;
     for (const [pid, p] of this.pins) {
@@ -642,7 +671,8 @@ export class Map3D {
         const sel = pid === this.selectedId || pid === this.hoverId;
         p.mesh.position.y = p.mesh.userData.baseY + Math.sin(time * 2 + pid) * 1.6 + (sel ? 4 : 0);
         p.mesh.rotation.y += dt * (sel ? 2.4 : 0.6);
-        const sc = sel ? 2.1 : 1.4;
+        const base = this.walking ? 0.6 : 1.4;
+        const sc = sel ? base * 1.5 : base;
         p.mesh.scale.lerp(new THREE.Vector3(sc, sc, sc), 0.15);
       }
       const ph = (time * 0.6 + pid * 0.37) % 1;

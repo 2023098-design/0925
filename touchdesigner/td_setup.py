@@ -10,6 +10,7 @@
 #                           └─ small(640×360) ─→ engine(손 추적) ─ hand_overlay ┘
 #     ws (Web Server DAT :9980) ⇄ 웹사이트 (js/td-bridge.js)
 #     frame_exec (매 프레임 engine.update())
+#     keys  TD 창 키보드: WASD 걷기 · Q/E 회전 · Space 점프 · V 시점 · G 걷기 · Tab 목적지 · N 자동 걷기 · ←/→ 필터
 # ─────────────────────────────────────────────────────────────
 import os
 
@@ -95,6 +96,21 @@ def onCook(scriptOp):
                 img[max(0, y-2):y+2, max(0, x-2):x+2] = col
         for x, y in pts:
             img[max(0, y-4):y+4, max(0, x-4):x+4] = (1, 1, 1, 1)
+    # ☝️ 조이스틱 표시 (가운데 원 + 막대)
+    try:
+        e = op('engine').module.get()
+        if e.joy_on:
+            cx, cy, r = W // 2, int(H * 0.55), 70
+            for a in np.linspace(0, 6.283, 120):
+                x, y = int(cx + np.cos(a) * r), int(cy + np.sin(a) * r)
+                img[max(0, y-2):y+2, max(0, x-2):x+2] = (1, 1, 1, 0.8)
+            jx, jy = int(cx + e.joy[0] * r), int(cy + e.joy[1] * r)
+            for t in np.linspace(0, 1, 20):
+                x, y = int(cx + (jx - cx) * t), int(cy + (jy - cy) * t)
+                img[max(0, y-2):y+2, max(0, x-2):x+2] = (1.0, 0.44, 0.57, 1)
+            img[max(0, jy-10):jy+10, max(0, jx-10):jx+10] = (1.0, 0.44, 0.57, 1)
+    except Exception:
+        pass
     scriptOp.copyNumpyArray(img)
     return
 def onSetupParameters(scriptOp):
@@ -196,13 +212,7 @@ kb_cb.text = '''def onTableChange(dat):
         return
     k = str(dat[dat.numRows - 1, 'key'])
     st = str(dat[dat.numRows - 1, 'state'])
-    if st not in ('1', 'True', 'down'):
-        return
-    e = op('engine').module.get()
-    if k in ('right', 'Right', '.'):
-        e.step_filter(1)
-    elif k in ('left', 'Left', ','):
-        e.step_filter(-1)
+    op('engine').module.get().key(k, st in ('1', 'True', 'down'))
     return
 '''
 kb_cb.par.tablechange = True

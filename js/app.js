@@ -282,7 +282,7 @@ function openPlace(id, { push = true } = {}) {
     const h = `${state.mode === 'map' ? '#/map' : '#'}/place/${id}`;
     if (location.hash !== h) history.pushState(null, '', h);
   }
-  if (map && state.mode === 'map') map.select(id, true);
+  if (map && state.mode === 'map') map.select(id, !map.walking);
   $$('.map-list li').forEach((li) => li.classList.toggle('sel', +li.dataset.id === id));
   setTimeout(() => $('#sheetClose').focus({ preventScroll: true }), 50);
 }
@@ -328,6 +328,7 @@ function renderSheet() {
       <div class="actions">
         <button class="btn" data-fly="${place.id}">🧊 3D 지도에서 보기</button>
         ${g.naver ? `<a class="btn" href="${esc(g.naver)}" target="_blank" rel="noopener">🗺 네이버지도</a>` : '<span></span>'}
+        <button class="btn" data-walkto="${place.id}">🚶 여기로 걸어가기</button>
         <button class="btn" data-fav="${place.id}" aria-pressed="${fav}">${fav ? '♥ 저장됨' : '♡ 저장하기'}</button>
         <button class="btn primary" data-write="${place.id}">✍️ 리뷰 쓰기</button>
       </div>
@@ -471,6 +472,7 @@ async function setMode(mode, { push = true } = {}) {
     if (state.selectedId) m.select(state.selectedId, true);
     if (!LS.get('gbk_mapIntro', false)) { LS.set('gbk_mapIntro', true); toast('←↑↓→ 이동 · Q/E 회전 · F 필터 · ✋ 손 제스처도 돼요'); }
   } else if (map) {
+    if (map.walking) toggleWalk(false);
     map.setActive(false);
   }
 }
@@ -636,7 +638,31 @@ function onInput(e) {
       break;
     }
     case 'pinchstart': cursor.classList.add('pinch'); break;
+    case 'joy':
+      if (map?.walking) map.walker.setJoy(e.x || 0, e.y || 0);
+      break;
+    case 'turn':
+      if (map?.walking) map.walker.turn(-(e.dx || 0) * 3, (e.dy || 0) * 1.5);
+      break;
+    case 'walk':
+      if (e.action === 'exit' || e.on === false) toggleWalk(false);
+      else if (e.action === 'enter' || e.on === true) toggleWalk(true);
+      else toggleWalk();
+      break;
+    case 'view':
+      toggleView(e.mode === 'first' || e.mode === 'third' ? e.mode : undefined);
+      break;
+    case 'jump':
+      map?.walker?.jump();
+      break;
+    case 'target':
+      nextTarget(e.dir === -1 ? -1 : 1);
+      break;
+    case 'autowalk':
+      toggleAuto();
+      break;
     case 'pinchmove':
+      if (map?.walking && !hover.el?.closest('.sheet, .walk-bar')) { map.walker.turn(-e.dx * 4, (map.walker.view === 'first' ? -1 : 1) * e.dy * 2); break; }
       if (state.mode === 'map' && hover.el?.tagName === 'CANVAS' || state.mode === 'map' && !hover.el?.closest('.map-side, .sheet')) map?.panScreen(e.dx, e.dy);
       else {
         const sc = hover.el?.closest('.sheet-scroll, .map-list');
@@ -654,7 +680,8 @@ function onInput(e) {
     case 'fist':
       cursor.classList.add('fist');
       clearTimeout(onInput.ft); onInput.ft = setTimeout(() => cursor.classList.remove('fist'), 200);
-      if (state.mode === 'map') map?.rotateBy(e.dx * Math.PI * 1.2, e.dy * 1.2);
+      if (map?.walking) map.walker.turn(-e.dx * 4, e.dy * 2);
+      else if (state.mode === 'map') map?.rotateBy(e.dx * Math.PI * 1.2, e.dy * 1.2);
       break;
     case 'zoom':
       if (state.mode === 'map') map?.zoomBy(e.scale);
@@ -668,7 +695,8 @@ function onInput(e) {
     case 'hold':
       if (e.pose === 'victory') { pop('✌️', state.mode === 'web' ? '3D 지도로' : '웹으로'); setMode(state.mode === 'web' ? 'map' : 'web'); }
       if (e.pose === 'thumbs') {
-        if (state.mode === 'map' && map) { const id = map.next(1); if (id) openPlace(id); pop('👍', '다음 공간'); } else { pop('👍', '좋아요!'); }
+        if (map?.walking) toggleView();
+        else if (state.mode === 'map' && map) { const id = map.next(1); if (id) openPlace(id); pop('👍', '다음 공간'); } else { pop('👍', '좋아요!'); }
       }
       break;
     case 'mode':
@@ -694,6 +722,7 @@ function onKey(e) {
     if (typing) { e.target.blur(); return; }
     if ($('#tagDD').classList.contains('open')) { $('#tagDD').classList.remove('open'); return; }
     if (sheet.classList.contains('on')) { closeSheet(); return; }
+    if (map?.walking) { toggleWalk(false); return; }
     if (map?.touring) { map.stopTour(); $('#btnTour').setAttribute('aria-pressed', 'false'); }
     return;
   }
@@ -721,6 +750,18 @@ function onKey(e) {
   }
   // 3D 지도
   if (!map) return;
+  if (k === 'g' || k === 'G') { toggleWalk(); return; }
+  if (map.walking) {
+    const w = map.walker;
+    const walkKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'q', 'e', 'Q', 'E', 'Shift', 'PageUp', 'PageDown'];
+    if (walkKeys.includes(k)) { e.preventDefault(); held.add(k.length === 1 ? k.toLowerCase() : k); return; }
+    if (k === ' ') { e.preventDefault(); w.jump(); return; }
+    if (k === 'v' || k === 'V') { toggleView(); return; }
+    if (k === 'n' || k === 'N') { toggleAuto(); return; }
+    if (k === 'Tab') { e.preventDefault(); nextTarget(e.shiftKey ? -1 : 1); return; }
+    if (k === 'Enter') { const id = w.arrived || w.target || w.nearest?.id; if (id) openPlace(id, { fly: false }); return; }
+    return;
+  }
   const movement = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', 'W', 'A', 'S', 'D', 'q', 'e', 'Q', 'E', 'z', 'x', 'Z', 'X', '+', '-', '=', 'PageUp', 'PageDown'];
   if (movement.includes(k)) { e.preventDefault(); held.add(k.length === 1 ? k.toLowerCase() : k); map.stopTour(); $('#btnTour').setAttribute('aria-pressed', 'false'); return; }
   if (k === 'Tab') { e.preventDefault(); const id = map.next(e.shiftKey ? -1 : 1); if (id) openPlace(id); return; }
@@ -729,7 +770,15 @@ function onKey(e) {
   if (k === 'h' || k === 'H' || k === 'r' || k === 'R' || k === 'Home') { map.reset(); return; }
 }
 function keyLoop() {
-  if (map && state.mode === 'map' && held.size) {
+  if (map?.walking) {
+    const w = map.walker;
+    const f = (held.has('ArrowUp') || held.has('w') ? 1 : 0) - (held.has('ArrowDown') || held.has('s') ? 1 : 0);
+    const r = (held.has('d') ? 1 : 0) - (held.has('a') ? 1 : 0);
+    w.setInput(r, f, held.has('Shift'));
+    const turn = (held.has('ArrowLeft') || held.has('q') ? 1 : 0) - (held.has('ArrowRight') || held.has('e') ? 1 : 0);
+    const pitch = (held.has('PageUp') ? 1 : 0) - (held.has('PageDown') ? 1 : 0);
+    if (turn || pitch) w.turn(turn * 0.035, pitch * 0.02);
+  } else if (map && state.mode === 'map' && held.size) {
     const sp = 1;
     let px = 0, pz = 0, rot = 0, zoom = 1, tilt = 0;
     if (held.has('ArrowUp') || held.has('w')) pz -= sp;
@@ -752,6 +801,152 @@ function toggleTour() {
   $('#btnTour').setAttribute('aria-pressed', String(on));
   toast(on ? '▶ 자동 투어 시작 — Space 로 멈춰요' : '⏸ 투어 정지');
   if (!on) closeSheet();
+}
+
+/* ── 걷기 모드 (캐릭터 · 1인칭 / 3인칭) ───────────────── */
+const CARD = [['N', Math.PI], ['NE', Math.PI * 0.75], ['E', Math.PI / 2], ['SE', Math.PI / 4], ['S', 0], ['SW', -Math.PI / 4], ['W', -Math.PI / 2], ['NW', -Math.PI * 0.75]];
+const CARD_KO = { N: '북', E: '동', S: '남', W: '서' };
+let compassEls = null;
+let walkStateT = 0;
+async function toggleWalk(on, opts = {}) {
+  if (on === undefined) on = !map?.walking;
+  if (on) {
+    if (state.mode !== 'map') await setMode('map');
+    const m = await ensureMap();
+    if (!m) return;
+    toast('🚶 캐릭터를 불러오는 중…');
+    const w = await m.ensureWalker({ onFrame: walkFrame, onArrive });
+    const at = opts.at ? m.pins.get(opts.at)?.anchor : null;
+    w.enter({ at: at ? w.freeNear(at.x + 25, at.z + 25, 90) : null, target: opts.target });
+    if (!opts.keepSheet) closeSheet();
+    document.body.classList.add('walking');
+    $('#walkUi').hidden = false;
+    $('#btnWalk').setAttribute('aria-pressed', 'true');
+    buildCompass();
+    syncWalkButtons();
+    toast(opts.target ? `🧭 ${placeName(opts.target)} 까지 길을 안내할게요 — N 으로 자동 걷기` : '🚶 WASD 로 걸어요 · V 1인칭/3인칭 · Tab 목적지');
+    sendTD({ type: 'walkstate', on: true, view: w.view });
+  } else if (map?.walking) {
+    map.walker.exit();
+    held.clear();
+    document.body.classList.remove('walking');
+    $('#walkUi').hidden = true;
+    $('#btnWalk').setAttribute('aria-pressed', 'false');
+    sendTD({ type: 'walkstate', on: false });
+  }
+}
+function placeName(id) { return state.places.find((p) => p.id === id)?.name || ''; }
+function toggleView(v) {
+  if (!map?.walking) return;
+  const view = map.walker.setView(v);
+  syncWalkButtons();
+  pop(view === 'first' ? '👀' : '🧍‍♀️', view === 'first' ? '1인칭 시점' : '3인칭 시점');
+  sendTD({ type: 'walkstate', on: true, view });
+}
+function toggleAuto() {
+  if (!map?.walking) return;
+  const w = map.walker;
+  if (!w.target) nextTarget(1);
+  const on = w.toggleAuto();
+  syncWalkButtons();
+  toast(on ? `🚶‍♀️ ${placeName(w.target)} 까지 자동으로 걸어가요` : '⏸ 자동 걷기 멈춤');
+}
+function nextTarget(dir = 1) {
+  if (!map?.walking) return;
+  const w = map.walker;
+  const ids = [...map.pins.keys()].sort((a, b) => {
+    const pa = map.pins.get(a).anchor, pb = map.pins.get(b).anchor;
+    return Math.hypot(pa.x - w.pos.x, pa.z - w.pos.z) - Math.hypot(pb.x - w.pos.x, pb.z - w.pos.z);
+  });
+  const i = ids.indexOf(w.target);
+  const id = ids[(i + dir + ids.length) % ids.length] ?? ids[0];
+  w.setTarget(id);
+  map.select(id, false);
+  syncWalkButtons();
+  pop('🧭', `목적지 · ${placeName(id)}`);
+}
+function syncWalkButtons() {
+  const w = map?.walker;
+  if (!w) return;
+  $('#btnView span').textContent = w.view === 'first' ? '1인칭' : '3인칭';
+  $('#btnAuto').setAttribute('aria-pressed', String(w.auto));
+}
+function buildCompass() {
+  const track = $('#compassTrack');
+  track.innerHTML = '';
+  compassEls = { card: [], ticks: [], pl: new Map() };
+  for (const [n, b] of CARD) {
+    const el = document.createElement('span');
+    el.className = `card ${n === 'N' ? 'n' : ''}`;
+    el.textContent = CARD_KO[n] || n;
+    track.appendChild(el);
+    compassEls.card.push([el, b]);
+  }
+  for (let k = 0; k < 24; k++) {
+    const el = document.createElement('span');
+    el.className = 'tick';
+    track.appendChild(el);
+    compassEls.ticks.push([el, (k / 24) * Math.PI * 2]);
+  }
+  for (const p of state.places) {
+    const el = document.createElement('span');
+    el.className = 'pl';
+    el.style.setProperty('--c', catOf(p).c);
+    track.appendChild(el);
+    compassEls.pl.set(p.id, el);
+  }
+}
+function walkFrame(w) {
+  if (!compassEls) return;
+  const FOV = Math.PI * 0.55;
+  const place = (el, rel) => {
+    const vis = Math.abs(rel) < FOV;
+    el.style.display = vis ? '' : 'none';
+    if (vis) el.style.left = `${50 - (rel / FOV) * 50}%`;
+  };
+  const wrapA = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+  for (const [el, b] of compassEls.card) place(el, wrapA(b - w.camYaw));
+  for (const [el, b] of compassEls.ticks) place(el, wrapA(b - w.camYaw));
+  const order = [...compassEls.pl.keys()].map((id) => [id, w.bearingTo(id)]).filter((x) => x[1]).sort((a, b) => a[1].dist - b[1].dist);
+  const show = new Set(order.slice(0, 5).map((x) => x[0]));
+  if (w.target) show.add(w.target);
+  for (const [id, el] of compassEls.pl) {
+    const br = w.bearingTo(id);
+    if (!br) continue;
+    if (!show.has(id)) { el.style.display = 'none'; continue; }
+    const p = state.places.find((x) => x.id === id);
+    el.innerHTML = `<i>${catOf(p).e}</i>${br.dist < 1000 ? Math.round(br.dist) : '1k+'}m`;
+    el.classList.toggle('tg', id === w.target);
+    el.style.zIndex = String(1000 - Math.round(br.dist));
+    place(el, br.rel);
+  }
+  // 근처 · 목적지 안내
+  const panel = $('#nearPanel');
+  const id = w.arrived || w.target || w.nearest?.id;
+  if (id) {
+    const br = w.bearingTo(id);
+    const arrow = `<span class="arrow" style="transform:rotate(${-br.rel}rad)">⬆</span>`;
+    const name = esc(placeName(id));
+    let html;
+    if (w.arrived) html = `🎉 <b>${esc(placeName(w.arrived))}</b> 도착! <button data-open="${w.arrived}">상세 보기 ⏎</button>`;
+    else if (w.target) html = `🧭 목적지 <b>${name}</b> ${arrow} ${Math.round(br.dist)}m · 걸어서 약 ${Math.max(1, Math.round(br.dist / 4.2 / 60 * 1.3))}분${w.auto ? ' · 자동 걷기 중' : ''}`;
+    else html = `📍 가장 가까운 곳 <b>${name}</b> ${arrow} ${Math.round(br.dist)}m`;
+    if (panel.dataset.html !== html) { panel.innerHTML = html; panel.dataset.html = html; }
+    panel.classList.toggle('arrived', !!w.arrived);
+  }
+  const mm = $('#minimap');
+  w.drawMinimap(mm.getContext('2d'), mm.width);
+  if ($('#btnAuto').getAttribute('aria-pressed') !== String(w.auto)) syncWalkButtons();
+  const now = performance.now();
+  if (now - walkStateT > 1000) {
+    walkStateT = now;
+    sendTD({ type: 'walkstate', on: true, view: w.view, nearest: placeName(w.nearest?.id), dist: Math.round(w.nearest?.dist || 0), target: placeName(w.target), arrived: placeName(w.arrived) });
+  }
+}
+function onArrive(id) {
+  if (!id) return;
+  pop('🎉', `${placeName(id)} 도착!`);
+  map.select(id, false);
 }
 
 /* ── 라우팅 ─────────────────────────────────────────────── */
@@ -799,6 +994,13 @@ function bind() {
     if (li) { openPlace(+li.dataset.id); return; }
     const fly = t.closest('[data-fly]');
     if (fly) { const id = +fly.dataset.fly; setMode('map').then(() => openPlace(id)); return; }
+    const walkto = t.closest('[data-walkto]');
+    if (walkto) {
+      const id = +walkto.dataset.walkto;
+      if (map?.walking) { map.walker.setTarget(id); closeSheet(); syncWalkButtons(); toast(`🧭 ${placeName(id)} 까지 안내 — N 으로 자동 걷기`); }
+      else toggleWalk(true, { target: id });
+      return;
+    }
     const write = t.closest('[data-write]');
     if (write) {
       const doIt = () => { state.writing = true; renderSheet(); };
@@ -834,6 +1036,11 @@ function bind() {
     $('#sideToggle').textContent = s.classList.contains('collapsed') ? '⟩' : '⟨';
   });
   $('#btnTour').addEventListener('click', toggleTour);
+  $('#btnWalk').addEventListener('click', () => toggleWalk());
+  $('#btnWalkExit').addEventListener('click', () => toggleWalk(false));
+  $('#btnView').addEventListener('click', () => toggleView());
+  $('#btnAuto').addEventListener('click', toggleAuto);
+  $('#btnTarget').addEventListener('click', () => nextTarget(1));
   $('#btnReset').addEventListener('click', () => map?.reset());
   $('#btnZoomIn').addEventListener('click', () => map?.zoomBy(0.75));
   $('#btnZoomOut').addEventListener('click', () => map?.zoomBy(1.33));
@@ -855,4 +1062,4 @@ load().then(() => { buildControls(); renderMapList(); });
 if (new URLSearchParams(location.search).has('td')) toggleTD();
 
 // 디버그 · 터치디자이너 없이 제스처 흉내: window.gbk.input({type:'swipe',dir:'right'})
-window.gbk = { input: onInput, setFilter: (i) => setFilter(i), setMode, get state() { return state; } };
+window.gbk = { input: onInput, setFilter: (i) => setFilter(i), setMode, toggleWalk, get map() { return map; }, get state() { return state; } };

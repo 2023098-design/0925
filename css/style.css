@@ -364,6 +364,54 @@ body.gesture-on .map-tools { bottom: 222px; }
 .wipe.go { animation: wipe .75s var(--ease) forwards; }
 @keyframes wipe { 0% { clip-path: circle(0% at var(--x, 50%) 50%); opacity: .6; } 50% { clip-path: circle(150% at var(--x, 50%) 50%); opacity: .45; } 100% { clip-path: circle(150% at var(--x, 50%) 50%); opacity: 0; } }
 
+/* ── 걷기 모드 ─────────────────────────────────────── */
+.walk-ui { position: absolute; inset: 0; pointer-events: none; }
+.walk-ui > * { pointer-events: auto; }
+body.walking .map-side, body.walking .map-hints, body.walking #btnTour, body.walking #btnReset { display: none; }
+body.walking .pin-label.far { opacity: 0; pointer-events: none; }
+.compass { position: absolute; left: 50%; top: calc(var(--top) + 12px); transform: translateX(-50%); width: min(560px, calc(100vw - 24px)); height: 44px;
+  border-radius: 14px; overflow: hidden; background: color-mix(in srgb, var(--surface) 72%, transparent); backdrop-filter: blur(14px);
+  border: 1px solid var(--line); box-shadow: var(--shadow); pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
+.compass-track { position: absolute; inset: 0; }
+.compass-track span { position: absolute; top: 50%; transform: translate(-50%, -50%); white-space: nowrap; font-weight: 800; font-size: 13px; color: var(--muted); }
+.compass-track span.card { color: var(--ink); font-size: 14px; }
+.compass-track span.card.n { color: #ff4d6d; }
+.compass-track span.tick { width: 1px; height: 10px; background: var(--muted); opacity: .5; top: 70%; }
+.compass-track span.pl { display: flex; align-items: center; gap: 4px; padding: 2px 7px 2px 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 11.5px; color: var(--ink); top: 50%; }
+.compass-track span.pl i { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-size: 10px; background: var(--c); }
+.compass-track span.pl.tg { background: var(--ink); color: var(--bg); border-color: transparent; z-index: 2; }
+.compass-center { position: absolute; left: 50%; top: 0; width: 2px; height: 10px; background: var(--accent); transform: translateX(-50%); border-radius: 2px; }
+.near { position: absolute; left: 50%; top: calc(var(--top) + 64px); transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 700;
+  background: color-mix(in srgb, var(--surface) 84%, transparent); backdrop-filter: blur(14px); border: 1px solid var(--line); box-shadow: var(--shadow); white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.near:empty { display: none; }
+.near .arrow { display: inline-block; transition: transform .15s; }
+.near b { color: var(--accent); }
+.near.arrived { background: var(--ink); color: var(--bg); animation: bump .5s var(--ease); }
+.near.arrived b { color: var(--accent2); }
+@keyframes bump { 50% { transform: translateX(-50%) scale(1.08); } }
+.near button { border: 0; border-radius: 999px; padding: 4px 10px; font-weight: 800; font-size: 12px; background: var(--accent); color: #fff; }
+.minimap-wrap { position: absolute; left: 14px; bottom: 18px; width: 180px; height: 180px; }
+.minimap { width: 180px; height: 180px; border-radius: 50%; border: 3px solid var(--surface); box-shadow: var(--shadow-lg); background: var(--bg2); }
+.walk-avatar { position: absolute; right: -8px; bottom: -6px; width: 64px; height: 64px; border-radius: 50%; background: var(--surface); border: 3px solid var(--surface); box-shadow: var(--shadow); object-fit: cover; }
+.walk-bar { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent); backdrop-filter: blur(18px); border: 1px solid var(--line); box-shadow: var(--shadow-lg); }
+.walk-bar button { border: 0; background: none; height: 38px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 700; color: var(--ink); white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.walk-bar button:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.walk-bar button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.walk-bar kbd { font-size: 10px; }
+.walk-hints { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); font-size: 12px; color: var(--muted); white-space: nowrap;
+  padding: 5px 12px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 60%, transparent); backdrop-filter: blur(10px); }
+#btnWalk { font-size: 20px; }
+@media (max-width: 720px) {
+  .minimap-wrap, .minimap { width: 120px; height: 120px; }
+  .minimap-wrap { bottom: 132px; left: 10px; }
+  .walk-avatar { width: 44px; height: 44px; }
+  .walk-hints { display: none; }
+  .walk-bar { bottom: 70px; max-width: calc(100vw - 20px); overflow-x: auto; }
+  .walk-bar kbd { display: none; }
+}
+
 /* ── 손 제스처 HUD ────────────────────────────────────── */
 .hud { position: fixed; right: 14px; bottom: 14px; z-index: 70; width: 236px; border-radius: 20px; overflow: hidden; background: #0d0b1a; color: #fff;
   box-shadow: var(--shadow-lg); border: 1px solid rgba(255,255,255,.12); transform: translateY(calc(100% + 30px)); transition: transform .5s var(--ease); }

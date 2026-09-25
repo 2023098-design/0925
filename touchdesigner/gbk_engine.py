@@ -146,10 +146,21 @@ class Engine:
         self.two = None
         self.label = ''
         self.mode = 'web'
+        self.joy = (0.0, 0.0)
+        self.joy_on = False
+        self.keys = set()
+        self.walk = {}
+        self.overlay = []
         self.motion_prev = None
         self.motion_hist = []
+        # 이 파일이 다시 불러와져도 예전 추적 스레드가 남지 않게 정리
+        import builtins
+        prev = getattr(builtins, '_gbk_tracker', None)
+        if prev is not None:
+            prev.stop()
         self.tracker = Tracker()
         self.tracker.start()
+        builtins._gbk_tracker = self.tracker
         self.status('MediaPipe 손 추적' if self.tracker.ok else '움직임 스와이프 모드 (MediaPipe 없음)')
 
     # ── WebSocket ─────────────────────────────────────────
@@ -181,6 +192,14 @@ class Engine:
             self.set_filter(m.get('index', m.get('filter')), echo=False)
         if m.get('mode'):
             self.mode = m['mode']
+        if t == 'walkstate':
+            self.walk = m
+            if m.get('on'):
+                near = m.get('arrived') or m.get('target') or m.get('nearest') or ''
+                what = '도착 ' if m.get('arrived') else ('목적지 ' if m.get('target') else '근처 ')
+                self.status(f"걷기 · {'1인칭' if m.get('view') == 'first' else '3인칭'} · {what}{near} {'' if m.get('arrived') else str(m.get('dist', '')) + 'm'}")
+            else:
+                self.status('지도 보기')
 
     # ── 필터 ──────────────────────────────────────────────
     def set_filter(self, i, echo=True, direction='right'):
@@ -199,7 +218,36 @@ class Engine:
         self.label = s
         t = op('hud_text')
         if t is not None:
-            t.par.text = f'공부각 × TouchDesigner   |   필터 {self.filter + 1}/7 · {FILTER_NAMES[self.filter]}   |   {s}   |   웹 연결 {len(self.clients)}   |   손바닥 좌우 스와이프 = 필터'
+            t.par.text = f'공부각 × TD  |  필터 {self.filter + 1}/7 {FILTER_NAMES[self.filter]}  |  {s}  |  웹 {len(self.clients)}'
+
+    # ── TD 키보드로 캐릭터 조종 (TD 창이 선택돼 있을 때) ──
+    def key(self, k, down):
+        k = k.lower()
+        if down:
+            self.keys.add(k)
+            once = {'space': {'type': 'jump'}, 'v': {'type': 'view'}, 'g': {'type': 'walk'}, 'tab': {'type': 'target', 'dir': 1},
+                    'n': {'type': 'autowalk'}, 'm': {'type': 'mode', 'mode': 'map' if self.mode != 'map' else 'web'}}
+            if k in once:
+                self.send(once[k])
+            elif k in ('right', '.'):
+                self.step_filter(1)
+            elif k in ('left', ','):
+                self.step_filter(-1)
+        else:
+            self.keys.discard(k)
+            move = {'w', 'a', 's', 'd', 'up', 'down', 'q', 'e'}
+            if k in move and not (self.keys & move):
+                self.send({'type': 'joy', 'x': 0, 'y': 0})
+
+    def key_joy(self):
+        k = self.keys
+        y = (1 if ('w' in k or 'up' in k) else 0) - (1 if ('s' in k or 'down' in k) else 0)
+        x = (1 if 'd' in k else 0) - (1 if 'a' in k else 0)
+        if x or y:
+            self.send({'type': 'joy', 'x': x, 'y': y})
+        t = (1 if 'q' in k else 0) - (1 if 'e' in k else 0)
+        if t:
+            self.send({'type': 'turn', 'dx': -t * 0.012, 'dy': 0})
 
     # ── 매 프레임 ─────────────────────────────────────────
     def update(self):
@@ -212,6 +260,7 @@ class Engine:
             g.par.value1x = self.prev
             g.par.value2x = self.mix
             g.par.value3x = absTime.seconds
+        self.key_joy()
         small = op('small')
         if small is None:
             return
@@ -236,6 +285,9 @@ class Engine:
             if self.last_pose is not None:
                 self.send({'type': 'cursor', 'x': self.cur[0], 'y': self.cur[1], 'visible': False})
             self.last_pose = None
+            if self.joy_on:
+                self.joy_on = False
+                self.send({'type': 'joy', 'x': 0, 'y': 0})
             self.hist = []
             self.hold_pose = None
             self.two = None
@@ -277,7 +329,19 @@ class Engine:
         if c['pose'] == 'fist' and self.last_pose == 'fist':
             self.send({'type': 'fist', 'dx': dx, 'dy': dy})
 
-        if c['pose'] in ('open', 'point'):
+        # ☝️ 가리키기 → 캐릭터 조이스틱 (화면 가운데 기준)
+        if c['pose'] == 'point':
+            def dz(v):
+                return 0.0 if abs(v) < 0.18 else math.copysign(min(1.0, (abs(v) - 0.18) / 0.6), v)
+            self.joy = (dz((c['index'][0] - 0.5) / 0.22), dz((0.45 - c['index'][1]) / 0.2))
+            self.joy_on = True
+            self.send({'type': 'joy', 'x': round(self.joy[0], 3), 'y': round(self.joy[1], 3)})
+        elif self.joy_on:
+            self.joy_on = False
+            self.joy = (0.0, 0.0)
+            self.send({'type': 'joy', 'x': 0, 'y': 0})
+
+        if c['pose'] == 'open':
             self.hist.append((now, c['palm'][0], c['palm'][1]))
             self.hist = [h for h in self.hist if now - h[0] < 0.32]
             h0 = self.hist[0]

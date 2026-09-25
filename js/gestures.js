@@ -10,6 +10,7 @@
      zoom {scale}            양손 핀치 거리 변화
      swipe {dir}             손바닥 좌우로 휙 → 지도 필터 변경
      hold {pose}             ✌️ victory · 👍 thumbs 1초 유지
+     joy {x,y}               ☝️ 가리키기 조이스틱 (걷기 모드: 위 = 앞으로)
    ──────────────────────────────────────────────────────────── */
 const MP_VER = '0.10.14';
 const MP_URL = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`;
@@ -161,8 +162,15 @@ export class HandGestures {
     // 주먹 → 회전
     if (c.pose === 'fist' && this.last?.pose === 'fist') this.emit({ type: 'fist', dx, dy });
 
+    // ☝️ 가리키기 → 걷기 조이스틱 (카메라 화면 가운데 기준 위·아래·좌·우)
+    if (c.pose === 'point') {
+      const dz = (v) => (Math.abs(v) < 0.18 ? 0 : Math.sign(v) * Math.min(1, (Math.abs(v) - 0.18) / 0.6));
+      this.emit({ type: 'joy', x: dz((c.index.x - 0.5) / 0.22), y: dz((0.45 - c.index.y) / 0.2) });
+      this.joyOn = true;
+    } else if (this.joyOn) { this.emit({ type: 'joy', x: 0, y: 0 }); this.joyOn = false; }
+
     // 손바닥 스와이프 → 필터 변경
-    if (c.pose === 'open' || c.pose === 'point') {
+    if (c.pose === 'open') {
       this.hist.push({ t: now, x: c.palm.x, y: c.palm.y });
       this.hist = this.hist.filter((h) => now - h.t < 320);
       const h0 = this.hist[0];

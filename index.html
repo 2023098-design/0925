@@ -128,9 +128,23 @@
     <div class="map-hints" id="mapHints">
       <div><kbd>←↑↓→</kbd> 이동 <kbd>Q</kbd><kbd>E</kbd> 회전 <kbd>Z</kbd><kbd>X</kbd> 줌</div>
       <div><kbd>Tab</kbd> 다음 공간 <kbd>Enter</kbd> 상세 <kbd>F</kbd> 필터 <kbd>Space</kbd> 투어</div>
+      <div><kbd>G</kbd> 🚶 캐릭터로 거리 걷기 (1인칭 · 3인칭)</div>
       <div>✋ 손바닥을 좌우로 휙 → 필터 변경</div>
     </div>
+    <div class="walk-ui" id="walkUi" hidden>
+      <div class="compass" id="compass" aria-hidden="true"><div class="compass-track" id="compassTrack"></div><i class="compass-center"></i></div>
+      <div class="near" id="nearPanel" aria-live="polite"></div>
+      <div class="minimap-wrap"><canvas class="minimap" id="minimap" width="360" height="360" aria-label="미니맵"></canvas><img class="walk-avatar" src="images/character.webp" alt=""></div>
+      <div class="walk-bar" role="toolbar" aria-label="걷기 조작">
+        <button id="btnView" title="시점 바꾸기 (V)">👁 <span>3인칭</span> <kbd>V</kbd></button>
+        <button id="btnTarget" title="다음 목적지 (Tab)">🧭 목적지 <kbd>Tab</kbd></button>
+        <button id="btnAuto" aria-pressed="false" title="목적지까지 자동 걷기 (N)">🚶‍♀️ 자동 걷기 <kbd>N</kbd></button>
+        <button id="btnWalkExit" title="걷기 끝내기 (G)">✕ 끝내기 <kbd>G</kbd></button>
+      </div>
+      <div class="walk-hints"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 · <kbd>←</kbd><kbd>→</kbd> 회전 · <kbd>Shift</kbd> 달리기 · <kbd>Space</kbd> 점프 · 드래그로 둘러보기 · ☝️ 가리키기 = 조이스틱</div>
+    </div>
     <div class="map-tools">
+      <button id="btnWalk" aria-pressed="false" title="캐릭터로 걷기 (G)">🚶</button>
       <button id="btnTour" aria-pressed="false" title="자동 투어 (Space)">▶</button>
       <button id="btnReset" title="처음 시점 (R)">⌂</button>
       <button id="btnZoomIn" title="확대 (Z)">＋</button>
@@ -156,7 +170,8 @@
     <div class="row"><span>🤏🤏 양손 핀치</span><b>확대 · 축소</b></div>
     <div class="row"><span>🖐 좌우 스와이프</span><b>필터 변경</b></div>
     <div class="row"><span>✌️ 1초 유지</span><b>웹 ↔ 3D</b></div>
-    <div class="row"><span>👍 1초 유지</span><b>다음 공간</b></div>
+    <div class="row"><span>👍 1초 유지</span><b>다음 공간 · 시점</b></div>
+    <div class="row"><span>☝️ 가리킨 채 이동</span><b>🚶 걷기 조이스틱</b></div>
   </div>
 </div>
 <div class="hand-cursor" id="handCursor"></div>
@@ -209,6 +224,14 @@
           <li><span>상세 보기</span><span><kbd>Enter</kbd></span></li>
           <li><span>자동 투어</span><span><kbd>Space</kbd></span></li>
           <li><span>처음 시점</span><span><kbd>H</kbd></span></li>
+        </ul>
+        <h4 style="margin-top:14px">🚶 걷기 모드 (<kbd>G</kbd>)</h4>
+        <ul>
+          <li><span>이동 · 달리기</span><span><kbd>WASD</kbd> · <kbd>Shift</kbd></span></li>
+          <li><span>회전 · 점프</span><span><kbd>←</kbd><kbd>→</kbd> · <kbd>Space</kbd></span></li>
+          <li><span>1인칭 ↔ 3인칭</span><span><kbd>V</kbd> / 👍 1초</span></li>
+          <li><span>목적지 · 자동 걷기</span><span><kbd>Tab</kbd> · <kbd>N</kbd></span></li>
+          <li><span>손 조이스틱</span><span>☝️ 가리킨 채 위·아래·좌·우</span></li>
         </ul>
         <h4 style="margin-top:14px">손 제스처</h4>
         <ul>

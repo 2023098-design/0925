@@ -45,6 +45,25 @@
 | TouchDesigner 연결 | `T` | |
 | 검색 · 뽀모도로 · 도움말 | `/` · `P` · `?` | |
 
+## 🚶 걷기 모드 — 캐릭터로 거리 돌아다니기
+
+3D 지도에서 `G`(또는 🚶 버튼, 상세 화면의 **여기로 걸어가기**)를 누르면 Blender 로 만든 캐릭터가 성신여대입구역 앞에 나타납니다.
+
+| | 키보드 · 마우스 | 손 제스처 (카메라 · TouchDesigner) |
+|---|---|---|
+| 걷기 · 달리기 | `WASD` / `↑↓` · `Shift` | ☝️ 검지로 가리킨 채 위(앞)·아래(뒤)·좌·우 → 조이스틱 |
+| 둘러보기 | `←` `→` `Q` `E` · 드래그 (1인칭은 클릭 후 마우스) | ✊ 주먹 쥐고 좌우 · 🤏 핀치 끌기 |
+| 1인칭 ↔ 3인칭 | `V` | 👍 1초 유지 |
+| 점프 | `Space` | |
+| 목적지 고르기 · 자동 걷기 | `Tab` · `N` | |
+| 상세 보기 | `Enter` (도착하면 🎉 알림) | 🤏 핀치로 라벨 클릭 |
+| 걷기 끝내기 | `G` / `Esc` | |
+
+- 추천 공간마다 **빛기둥**이 서 있어 거리에서도 위치가 보여요
+- 위쪽 **나침반**에 가까운 공간의 방향과 거리가, 왼쪽 아래 **미니맵**(Blender 탑뷰 렌더)에 내 위치와 공간들이 표시됩니다
+- **목적지**를 고르면 길을 따라 발자국 점이 생기고(격자 A* 길찾기), `N` 으로 자동으로 걸어가요
+- 건물 · 성북천은 통과할 수 없고, 다리는 건널 수 있어요
+
 ## 지도 디자인 필터
 
 `js/filters.js` 한 곳에서 웹 화면 색(CSS 변수)과 3D 지도(재질 · 조명 · 안개 · 블룸 · 후처리 셰이더)를 함께 정의합니다. TouchDesigner 카메라 화면도 같은 순서의 필터(`touchdesigner/filters.glsl`)로 바뀝니다.
@@ -69,8 +88,11 @@ js/vendor/three/        three.js r165 (MIT) — 빌드 도구 없이 importmap �
 seed/                   시드 JSON 3개 + 검사기 (node seed/check_seed.js)
 data/geo.json           공간 좌표 · 네이버지도 링크 (시드 필드 이름은 그대로 두기 위해 따로 둠)
 assets/map/sungshin_map.glb   Blender 가 만든 3D 지도 (Draco 압축)
+assets/map/character.glb      Blender 캐릭터 (관절 피벗 분리 → 웹에서 걷기 애니메이션)
+js/walker.js            걷기 모드 — 이동 · 충돌 · 1/3인칭 카메라 · 나침반 · 미니맵 · 길찾기
 images/                 Blender 렌더 — 히어로 이미지 · 공간 카드 사진
 blender/build_map.py    OSM → Blender 3D 지도 → GLB · 썸네일 렌더 스크립트
+blender/build_character.py · render_minimap.py   캐릭터 GLB · 미니맵 렌더
 blender/sungshin_map.blend
 touchdesigner/          TouchDesigner 손 제스처 · 필터 네트워크
 server/                 Express 서버 뼈대 (W6 과제용, 그대로 둠)
@@ -121,8 +143,12 @@ node seed/check_seed.js  # 시드 검사 (함정 3개 유지 확인)
 | `{"type":"fist","dx":..,"dy":..}` · `{"type":"zoom","scale":1.05}` | 회전 · 줌 |
 | `{"type":"filter","index":3,"dir":"right"}` | 지도 필터 변경 |
 | `{"type":"hold","pose":"victory"}` · `{"type":"mode","mode":"map"}` · `{"type":"key","key":"Tab"}` | 모드 전환 · 키 입력 |
+| `{"type":"joy","x":0,"y":1}` · `{"type":"turn","dx":-0.01}` | 🚶 캐릭터 이동 (조이스틱 −1~1) · 회전 |
+| `{"type":"walk"}` · `{"type":"view"}` · `{"type":"jump"}` · `{"type":"target","dir":1}` · `{"type":"autowalk"}` | 걷기 켜기/끄기 · 1/3인칭 · 점프 · 목적지 · 자동 걷기 |
 
-웹 → TD: `{"type":"filter","index":3}` (키보드·버튼으로 바꾼 필터를 TD 카메라 필터에 반영)
+웹 → TD: `{"type":"filter","index":3}` (키보드·버튼으로 바꾼 필터를 TD 카메라 필터에 반영) · `{"type":"walkstate","on":true,"view":"third","nearest":"…","dist":35}` (TD 화면 아래에 표시)
+
+**TouchDesigner 로 캐릭터 조종** — TD 카메라 앞에서 ☝️ 가리키면 화면 가운데에 조이스틱이 그려지고 캐릭터가 걸어요. TD 창을 선택한 상태에서는 키보드로도: `WASD` 걷기 · `Q` `E` 회전 · `Space` 점프 · `V` 시점 · `G` 걷기 켜기/끄기 · `Tab` 목적지 · `N` 자동 걷기 · `M` 웹↔3D · `←` `→` 필터
 
 
 ## 프로젝트 규칙 (시드)
