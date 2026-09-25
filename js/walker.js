@@ -35,7 +35,7 @@ export class Walker {
     this.vy = 0;
     this.yaw = Math.PI;         // 캐릭터가 바라보는 방향 (0 = +Z, π = 북쪽)
     this.camYaw = Math.PI;
-    this.camPitch = 0.28;
+    this.camPitch = 0.14;
     this.input = { x: 0, z: 0, run: false };
     this.joy = { x: 0, y: 0, t: 0 };
     this.look = { dx: 0, dy: 0 };
